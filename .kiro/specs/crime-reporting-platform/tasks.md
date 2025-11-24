@@ -124,8 +124,15 @@
     - Test file type validation
     - _Requirements: 2.2_
 
-- [ ] 6. Implement AI analysis service
-  - [ ] 6.1 Create AIService with Gemini API integration
+- [x] 6. Implement AI analysis service
+
+
+
+
+
+
+  - [x] 6.1 Create AIService with Gemini API integration
+
     - Implement rate limiter (15 requests per minute)
     - Implement analyzeCrimeReport function for text analysis
     - Implement analyzeImage function for image analysis
@@ -143,8 +150,15 @@
     - Test response parsing
     - _Requirements: 14.1, 14.2, 14.3, 14.4_
 
-- [ ] 7. Implement report service and store
-  - [ ] 7.1 Create ReportService with CRUD operations
+- [x] 7. Implement report service and store
+
+
+
+
+
+
+  - [x] 7.1 Create ReportService with CRUD operations
+
     - Implement createReport with AI analysis integration
     - Implement getReport function
     - Implement getReports with filtering
@@ -152,7 +166,9 @@
     - Implement updateReport and deleteReport
     - _Requirements: 2.1, 2.4, 2.5, 2.6_
 
-  - [ ] 7.2 Create reportsStore for reactive state management
+
+  - [x] 7.2 Create reportsStore for reactive state management
+
     - Implement Firestore real-time listener
     - Add filter support (crime type, date range)
     - Handle listener lifecycle (subscribe/unsubscribe)
@@ -172,8 +188,13 @@
     - Test error handling
     - _Requirements: 2.1, 2.4, 2.5, 2.6_
 
-- [ ] 8. Implement voting service
-  - [ ] 8.1 Create VoteService with vote/removeVote/getUserVote methods
+- [-] 8. Implement voting service
+
+
+  - [x] 8.1 Create VoteService with vote/removeVote/getUserVote methods
+
+
+
     - Implement vote function with Firestore transaction
     - Implement removeVote function
     - Implement getUserVote function
