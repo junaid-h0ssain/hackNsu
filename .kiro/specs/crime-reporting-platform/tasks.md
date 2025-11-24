@@ -188,10 +188,15 @@
     - Test error handling
     - _Requirements: 2.1, 2.4, 2.5, 2.6_
 
-- [-] 8. Implement voting service
+- [x] 8. Implement voting service
+
+
+
+
 
 
   - [x] 8.1 Create VoteService with vote/removeVote/getUserVote methods
+
 
 
 
@@ -216,8 +221,14 @@
     - Test transaction handling
     - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 9. Implement comment service
-  - [ ] 9.1 Create CommentService with add/get/subscribe/delete methods
+- [x] 9. Implement comment service
+
+
+
+
+  - [x] 9.1 Create CommentService with add/get/subscribe/delete methods
+
+
     - Implement addComment function
     - Implement getComments with ordering by createdAt
     - Implement subscribeToComments with real-time listener
@@ -234,15 +245,23 @@
     - Test comment deletion
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 10. Create map components with Leaflet
-  - [ ] 10.1 Create LocationPicker component
+- [x] 10. Create map components with Leaflet
+
+
+
+
+  - [x] 10.1 Create LocationPicker component
+
+
     - Initialize Leaflet map with OpenStreetMap tiles
     - Add click handler to select location
     - Display selected coordinates
     - Emit location selection event
     - _Requirements: 2.3, 15.1, 15.2_
 
-  - [ ] 10.2 Create CrimeMap component
+  - [x] 10.2 Create CrimeMap component
+
+
     - Initialize Leaflet map with OpenStreetMap tiles
     - Implement marker clustering for performance
     - Add markers for each report with popups
@@ -260,8 +279,15 @@
     - Test filter application
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 11. Create report UI components
-  - [ ] 11.1 Create ReportForm component
+- [x] 11. Create report UI components
+
+
+
+
+
+  - [x] 11.1 Create ReportForm component
+
+
     - Build form UI with Shadcn/UI components
     - Integrate LocationPicker for location selection
     - Add media upload with preview
@@ -270,7 +296,9 @@
     - Show loading state during submission
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-  - [ ] 11.2 Create ReportCard component
+  - [x] 11.2 Create ReportCard component
+
+
     - Display report details (title, description, author, timestamp)
     - Show AI analysis results (severity, categories)
     - Display vote counts
@@ -279,7 +307,9 @@
     - Add real-time updates listener
     - _Requirements: 2.1, 2.4, 2.5, 3.1, 3.2_
 
-  - [ ] 11.3 Create ReportList component
+  - [x] 11.3 Create ReportList component
+
+
     - Display list of ReportCard components
     - Implement filtering UI (crime type, date range)
     - Add pagination (20 reports per page)
@@ -292,8 +322,15 @@
     - Test ReportList filtering
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 12. Create interaction components
-  - [ ] 12.1 Create VoteButtons component
+
+- [x] 12. Create interaction components
+
+
+
+
+  - [x] 12.1 Create VoteButtons component
+
+
     - Build upvote/downvote button UI
     - Show current vote counts
     - Highlight user's current vote
@@ -301,7 +338,9 @@
     - Handle vote changes
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-  - [ ] 12.2 Create CommentSection component
+  - [x] 12.2 Create CommentSection component
+
+
     - Display list of comments in chronological order
     - Build comment input form
     - Call CommentService to add comments
