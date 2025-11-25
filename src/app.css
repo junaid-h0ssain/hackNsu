@@ -235,10 +235,4 @@ textarea {
 }
 
 /* Loading state announcement for screen readers */
-[aria-busy="true"]::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.7);
-  cursor: wait;
-}
+/* Note: aria-busy styling handled by individual components to avoid overlay issues */
