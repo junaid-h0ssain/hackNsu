@@ -2,6 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import { createReport } from '$lib/services/reportService';
   import LocationPicker from '$lib/components/map/LocationPicker.svelte';
+  import { ErrorAlert, ProgressBar, Spinner } from '$lib/components/ui';
   import type { Location, CreateReportInput } from '$lib/types';
 
   const dispatch = createEventDispatcher<{ success: string; error: string }>();
@@ -18,6 +19,9 @@
   let isSubmitting = false;
   let showLocationPicker = false;
   let errors: Record<string, string> = {};
+  let submitError: string | null = null;
+  let submitProgress = 0;
+  let submitStage: 'idle' | 'uploading' | 'analyzing' | 'saving' = 'idle';
 
   // Crime type options
   const crimeTypes = [
@@ -120,8 +124,16 @@
     }
 
     isSubmitting = true;
+    submitError = null;
+    submitProgress = 0;
+    submitStage = mediaFiles.length > 0 ? 'uploading' : 'analyzing';
 
     try {
+      // Simulate progress stages
+      if (mediaFiles.length > 0) {
+        submitProgress = 20;
+      }
+      
       const reportInput: CreateReportInput = {
         title: title.trim(),
         description: description.trim(),
@@ -130,10 +142,18 @@
         mediaFiles: mediaFiles.length > 0 ? mediaFiles : undefined
       };
 
+      submitStage = 'analyzing';
+      submitProgress = 50;
+
       const reportId = await createReport(reportInput);
+      
+      submitStage = 'saving';
+      submitProgress = 90;
       
       // Clean up preview URLs
       mediaPreviewUrls.forEach(url => URL.revokeObjectURL(url));
+      
+      submitProgress = 100;
       
       // Reset form
       title = '';
@@ -143,49 +163,92 @@
       mediaFiles = [];
       mediaPreviewUrls = [];
       showLocationPicker = false;
+      submitStage = 'idle';
 
       dispatch('success', reportId);
     } catch (error: any) {
       console.error('Failed to create report:', error);
-      dispatch('error', error.message || 'Failed to create report');
+      const errorMsg = error.message || 'Failed to create report';
+      submitError = errorMsg;
+      dispatch('error', errorMsg);
     } finally {
       isSubmitting = false;
+      submitStage = 'idle';
+      submitProgress = 0;
     }
   }
 </script>
 
-<div class="report-form">
-  <h2 class="text-2xl font-bold mb-6">Submit Crime Report</h2>
+<div class="report-form" role="region" aria-labelledby="report-form-title">
+  <h2 id="report-form-title" class="text-2xl font-bold mb-6">Submit Crime Report</h2>
 
-  <form on:submit|preventDefault={handleSubmit} class="space-y-6">
+  <form on:submit|preventDefault={handleSubmit} class="space-y-6" aria-describedby="form-instructions">
+    <p id="form-instructions" class="sr-only">
+      Fill out the form below to submit a crime report. Required fields are marked with an asterisk.
+    </p>
+
+    <!-- Submit Error -->
+    {#if submitError}
+      <ErrorAlert error={submitError} dismissible={true} on:dismiss={() => submitError = null} />
+    {/if}
+
+    <!-- Submit Progress -->
+    {#if isSubmitting}
+      <div class="submit-progress bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex items-center gap-3 mb-2">
+          <Spinner size="sm" />
+          <span class="text-sm font-medium text-blue-800">
+            {#if submitStage === 'uploading'}
+              Uploading media files...
+            {:else if submitStage === 'analyzing'}
+              Analyzing report with AI...
+            {:else if submitStage === 'saving'}
+              Saving report...
+            {:else}
+              Processing...
+            {/if}
+          </span>
+        </div>
+        <ProgressBar progress={submitProgress} showLabel={false} color="blue" size="sm" />
+      </div>
+    {/if}
+
     <!-- Title -->
     <div class="form-group">
       <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
-        Title <span class="text-red-500">*</span>
+        Title <span class="text-red-500" aria-hidden="true">*</span>
+        <span class="sr-only">(required)</span>
       </label>
       <input
         id="title"
         type="text"
         bind:value={title}
         placeholder="Brief title of the incident"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         disabled={isSubmitting}
+        aria-required="true"
+        aria-invalid={errors.title ? 'true' : 'false'}
+        aria-describedby={errors.title ? 'title-error' : undefined}
       />
       {#if errors.title}
-        <p class="text-red-500 text-sm mt-1">{errors.title}</p>
+        <p id="title-error" class="text-red-500 text-sm mt-1" role="alert">{errors.title}</p>
       {/if}
     </div>
 
     <!-- Crime Type -->
     <div class="form-group">
       <label for="crimeType" class="block text-sm font-medium text-gray-700 mb-2">
-        Crime Type <span class="text-red-500">*</span>
+        Crime Type <span class="text-red-500" aria-hidden="true">*</span>
+        <span class="sr-only">(required)</span>
       </label>
       <select
         id="crimeType"
         bind:value={crimeType}
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         disabled={isSubmitting}
+        aria-required="true"
+        aria-invalid={errors.crimeType ? 'true' : 'false'}
+        aria-describedby={errors.crimeType ? 'crimeType-error' : undefined}
       >
         <option value="">Select a crime type</option>
         {#each crimeTypes as type}
@@ -193,27 +256,31 @@
         {/each}
       </select>
       {#if errors.crimeType}
-        <p class="text-red-500 text-sm mt-1">{errors.crimeType}</p>
+        <p id="crimeType-error" class="text-red-500 text-sm mt-1" role="alert">{errors.crimeType}</p>
       {/if}
     </div>
 
     <!-- Description -->
     <div class="form-group">
       <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
-        Description <span class="text-red-500">*</span>
+        Description <span class="text-red-500" aria-hidden="true">*</span>
+        <span class="sr-only">(required, minimum 20 characters)</span>
       </label>
       <textarea
         id="description"
         bind:value={description}
         placeholder="Provide detailed information about the incident..."
         rows="6"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
         disabled={isSubmitting}
+        aria-required="true"
+        aria-invalid={errors.description ? 'true' : 'false'}
+        aria-describedby="description-hint {errors.description ? 'description-error' : ''}"
       />
       {#if errors.description}
-        <p class="text-red-500 text-sm mt-1">{errors.description}</p>
+        <p id="description-error" class="text-red-500 text-sm mt-1" role="alert">{errors.description}</p>
       {/if}
-      <p class="text-gray-500 text-sm mt-1">
+      <p id="description-hint" class="text-gray-500 text-sm mt-1" aria-live="polite">
         {description.length} characters (minimum 20)
       </p>
     </div>
@@ -334,14 +401,26 @@
   .report-form {
     max-width: 800px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 1.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .report-form {
+      padding: 2rem;
+    }
   }
 
   .location-picker-container {
     border: 1px solid #e5e7eb;
     border-radius: 0.5rem;
-    padding: 1rem;
+    padding: 0.75rem;
     background-color: #f9fafb;
+  }
+
+  @media (min-width: 640px) {
+    .location-picker-container {
+      padding: 1rem;
+    }
   }
 
   .media-preview-item {
@@ -351,9 +430,33 @@
     overflow: hidden;
   }
 
-  @media (max-width: 768px) {
-    .report-form {
-      padding: 1rem;
+  /* Screen reader only class */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Touch-friendly form inputs */
+  @media (pointer: coarse) {
+    :global(.report-form input),
+    :global(.report-form select),
+    :global(.report-form textarea),
+    :global(.report-form button) {
+      min-height: 44px;
+    }
+  }
+
+  /* Responsive media grid */
+  @media (max-width: 480px) {
+    :global(.media-previews) {
+      grid-template-columns: repeat(2, 1fr) !important;
     }
   }
 </style>

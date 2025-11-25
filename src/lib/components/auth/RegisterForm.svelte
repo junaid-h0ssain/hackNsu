@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { signUpWithEmail, signInWithPhone, confirmPhoneCode } from '$lib/services/authService';
+	import { ErrorAlert, Spinner } from '$lib/components/ui';
 	import type { ConfirmationResult } from 'firebase/auth';
 	import type { User } from '$lib/types';
 
@@ -155,8 +156,8 @@
 
 	<!-- Error message -->
 	{#if error}
-		<div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-			{error}
+		<div class="mb-4">
+			<ErrorAlert error={error} dismissible={true} on:dismiss={() => error = ''} />
 		</div>
 	{/if}
 
@@ -225,10 +226,15 @@
 
 			<button
 				type="submit"
-				class="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+				class="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
 				disabled={loading}
 			>
-				{loading ? 'Creating account...' : 'Create Account'}
+				{#if loading}
+					<Spinner size="sm" color="text-white" />
+					<span>Creating account...</span>
+				{:else}
+					Create Account
+				{/if}
 			</button>
 		</form>
 	{/if}
@@ -258,10 +264,15 @@
 
 				<button
 					type="submit"
-					class="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+					class="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
 					disabled={loading}
 				>
-					{loading ? 'Sending OTP...' : 'Send OTP'}
+					{#if loading}
+						<Spinner size="sm" color="text-white" />
+						<span>Sending OTP...</span>
+					{:else}
+						Send OTP
+					{/if}
 				</button>
 			</form>
 		{:else}
@@ -287,10 +298,15 @@
 
 				<button
 					type="submit"
-					class="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors mb-2"
+					class="w-full py-2 px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors mb-2 flex items-center justify-center gap-2"
 					disabled={loading}
 				>
-					{loading ? 'Verifying...' : 'Verify OTP'}
+					{#if loading}
+						<Spinner size="sm" color="text-white" />
+						<span>Verifying...</span>
+					{:else}
+						Verify OTP
+					{/if}
 				</button>
 
 				<button

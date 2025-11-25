@@ -353,15 +353,22 @@
     - Test CommentSection display and input
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 4.1, 4.2, 4.3_
 
-- [ ] 13. Implement moderation features
-  - [ ] 13.1 Create moderation service
+- [x] 13. Implement moderation features
+
+
+
+  - [x] 13.1 Create moderation service
+
+
     - Implement flagReport function
     - Implement removeComment function
     - Implement suspendUser function
     - Create moderation log entries
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-  - [ ] 13.2 Create ModerationPanel component
+  - [x] 13.2 Create ModerationPanel component
+
+
     - Build moderation actions UI (flag, remove, suspend)
     - Show only to moderators/admins
     - Call moderation service functions
@@ -377,15 +384,24 @@
     - Test role-based visibility
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-- [ ] 14. Implement admin features
-  - [ ] 14.1 Create user management service
+- [x] 14. Implement admin features
+
+
+
+
+
+
+  - [x] 14.1 Create user management service
+
     - Implement promoteToModerator function
     - Implement demoteToUser function
     - Update user roles in Firestore
     - Refresh user session after role change
     - _Requirements: 7.1, 7.2, 7.3_
 
-  - [ ] 14.2 Create UserManagement component
+  - [x] 14.2 Create UserManagement component
+
+
     - Build admin panel UI
     - Display user list with roles
     - Add role change buttons
@@ -397,15 +413,24 @@
     - Test admin-only visibility
     - _Requirements: 7.1, 7.2, 7.3_
 
-- [ ] 15. Implement user profile features
-  - [ ] 15.1 Create profile service
+- [x] 15. Implement user profile features
+
+
+
+
+
+  - [x] 15.1 Create profile service
+
+
     - Implement getUserProfile function
     - Implement updateProfile function
     - Implement getUserReports function
     - Implement getUserActivity function (votes, comments)
     - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
-  - [ ] 15.2 Create Profile component
+
+  - [x] 15.2 Create Profile component
+
     - Display user information (username, email, phone, role)
     - Build profile edit form
     - Display user's submitted reports
@@ -417,41 +442,67 @@
     - Test profile updates
     - Test activity history
     - _Requirements: 8.1, 8.2, 8.3, 8.4_
+-
 
-- [ ] 16. Create main application routes and layout
-  - [ ] 16.1 Create root layout with navigation
+- [x] 16. Create main application routes and layout
+
+
+
+
+  - [x] 16.1 Create root layout with navigation
+
+
     - Build navigation bar with auth state
     - Add login/logout buttons
     - Add links to main sections (feed, map, profile)
     - Show admin/moderator links based on role
     - _Requirements: 1.1, 1.5_
 
-  - [ ] 16.2 Create home page route (/)
+
+
+  - [x] 16.2 Create home page route (/)
+
+
     - Display crime feed with ReportList
     - Add "Create Report" button
     - _Requirements: 2.1, 5.3_
 
-  - [ ] 16.3 Create map page route (/map)
+
+  - [x] 16.3 Create map page route (/map)
+
     - Display CrimeMap component
     - Add filter controls
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-  - [ ] 16.4 Create login page route (/login)
+
+
+  - [x] 16.4 Create login page route (/login)
+
     - Display LoginForm component
     - Redirect to home after successful login
     - _Requirements: 1.1, 1.2, 1.3_
 
-  - [ ] 16.5 Create register page route (/register)
+
+
+  - [x] 16.5 Create register page route (/register)
+
     - Display RegisterForm component
     - Redirect to home after successful registration
     - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-  - [ ] 16.6 Create profile page route (/profile)
+
+
+  - [x] 16.6 Create profile page route (/profile)
+
+
     - Display Profile component
     - Require authentication
     - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
-  - [ ] 16.7 Create admin page route (/admin)
+
+  - [x] 16.7 Create admin page route (/admin)
+
+
     - Display UserManagement component
     - Require admin role
     - _Requirements: 7.1, 7.2_
@@ -462,7 +513,14 @@
     - Test role-based access
     - _Requirements: 1.1, 1.5_
 
-- [ ] 17. Implement session persistence
+
+- [x] 17. Implement session persistence
+
+
+
+
+
+
   - [ ]* 17.1 Write property test for session persistence
     - **Property 11: Session Persistence**
     - **Validates: Requirements 1.5**
@@ -472,8 +530,16 @@
     - Test session restoration
     - _Requirements: 1.5_
 
-- [ ] 18. Add responsive design and accessibility
-  - [ ] 18.1 Implement responsive layouts for all components
+-
+
+- [-] 18. Add responsive design and accessibility
+
+
+
+
+
+  - [x] 18.1 Implement responsive layouts for all components
+
     - Add mobile-friendly styles with Tailwind breakpoints
     - Test on different screen sizes
     - Optimize map controls for touch devices
@@ -487,14 +553,26 @@
     - Add focus indicators
     - _Requirements: 11.1, 11.2, 11.3_
 
-- [ ] 19. Implement error handling and loading states
-  - [ ] 19.1 Create error handling utilities
+- [x] 19. Implement error handling and loading states
+
+
+
+
+
+
+
+
+  - [x] 19.1 Create error handling utilities
+
+
     - Implement global error handler
     - Create error display components
     - Add retry logic with exponential backoff
     - _Requirements: 9.2_
 
-  - [ ] 19.2 Add loading states to all async operations
+
+  - [x] 19.2 Add loading states to all async operations
+
     - Add loading spinners to forms
     - Add skeleton loaders to lists
     - Show progress bars for uploads
@@ -504,22 +582,39 @@
     - Test error display
     - Test retry logic
     - Test loading states
-    - _Requirements: 9.2_
+ 
 
-- [ ] 20. Optimize performance
-  - [ ] 20.1 Implement code splitting
+   - _Requirements: 9.2_
+-
+
+
+- [x] 20. Optimize performance
+
+
+
+
+
+
+  - [x] 20.1 Implement code splitting
+
     - Lazy load map components
     - Lazy load admin/moderation panels
     - Split AI service into separate chunk
     - _Requirements: 9.1, 9.4_
 
-  - [ ] 20.2 Implement caching strategies
+
+  - [x] 20.2 Implement caching strategies
+
+
+
     - Cache Firestore queries with TTL
     - Implement pagination for large result sets
     - Optimize image loading with compression
     - _Requirements: 9.1, 9.3, 9.4_
 
-  - [ ] 20.3 Optimize real-time listeners
+
+  - [x] 20.3 Optimize real-time listeners
+
     - Limit listeners to visible reports
     - Detach listeners on component unmount
     - _Requirements: 9.3_
@@ -529,8 +624,19 @@
     - Test map performance with 100+ markers
     - Test real-time update latency (< 1 second)
     - _Requirements: 9.1, 9.3, 9.4_
+-
 
-- [ ] 21. Final checkpoint - Ensure all tests pass
+- [x] 21. Final checkpoint - Ensure all tests pass
+
+
+
+
+
+
+
+
+
+
   - Run all unit tests and verify they pass
   - Run all property-based tests and verify they pass
   - Test the application manually for core workflows

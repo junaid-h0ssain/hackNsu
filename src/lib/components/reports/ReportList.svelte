@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { subscribeToReports } from '$lib/services/reportService';
   import ReportCard from './ReportCard.svelte';
+  import { SkeletonLoader } from '$lib/components/ui';
   import type { Report, FilterOptions } from '$lib/types';
   import type { Unsubscribe } from 'firebase/firestore';
   import { REPORTS_PER_PAGE } from '$lib/utils/constants';
@@ -16,6 +17,8 @@
   let totalPages = 1;
   let isLoading = true;
   let unsubscribe: Unsubscribe | null = null;
+  let intersectionObserver: IntersectionObserver | null = null;
+  let listContainer: HTMLDivElement;
 
   // Filter state
   let selectedCrimeType = filters.crimeType || '';
@@ -105,6 +108,42 @@
     goToPage(currentPage - 1);
   }
 
+  /**
+   * Set up intersection observer to pause/resume listener based on visibility
+   * This optimizes real-time updates by only listening when the list is visible
+   */
+  function setupVisibilityObserver() {
+    if (typeof IntersectionObserver === 'undefined') return;
+
+    intersectionObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            // Component is visible, ensure listener is active
+            if (!unsubscribe) {
+              applyFilters();
+            }
+          } else {
+            // Component is not visible, pause listener to save resources
+            if (unsubscribe) {
+              unsubscribe();
+              unsubscribe = null;
+            }
+          }
+        });
+      },
+      {
+        root: null,
+        rootMargin: '100px', // Start loading slightly before visible
+        threshold: 0
+      }
+    );
+
+    if (listContainer) {
+      intersectionObserver.observe(listContainer);
+    }
+  }
+
   onMount(() => {
     // Initial subscription
     unsubscribe = subscribeToReports(filters, (updatedReports) => {
@@ -112,16 +151,27 @@
       updateDisplayedReports();
       isLoading = false;
     });
+
+    // Set up visibility-based optimization
+    setupVisibilityObserver();
   });
 
   onDestroy(() => {
+    // Clean up listener
     if (unsubscribe) {
       unsubscribe();
+      unsubscribe = null;
+    }
+
+    // Clean up intersection observer
+    if (intersectionObserver) {
+      intersectionObserver.disconnect();
+      intersectionObserver = null;
     }
   });
 </script>
 
-<div class="report-list">
+<div class="report-list" bind:this={listContainer}>
   <!-- Filter Section -->
   <div class="filter-section">
     <div class="filter-header">
@@ -211,9 +261,10 @@
 
   <!-- Report Cards -->
   {#if isLoading}
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <p>Loading reports...</p>
+    <div class="loading-state space-y-4">
+      {#each Array(3) as _}
+        <SkeletonLoader variant="card" />
+      {/each}
     </div>
   {:else if displayedReports.length === 0}
     <div class="empty-state">

@@ -7,6 +7,7 @@ import {
 	type StorageReference
 } from 'firebase/storage';
 import { storage } from '$lib/firebase/config';
+import { compressImage, imageCache } from '$lib/utils/cache';
 
 /**
  * StorageService provides media upload/download functionality using Firebase Storage
@@ -56,25 +57,39 @@ function validateFile(file: File): void {
 
 /**
  * Upload a file to Firebase Storage with progress tracking
+ * Automatically compresses images before upload
  * @param file - The file to upload
  * @param path - Storage path (e.g., 'reports/reportId/filename.jpg')
  * @param onProgress - Optional callback for upload progress (0-100)
+ * @param compress - Whether to compress images (default: true)
  * @returns Promise resolving to the download URL
  * @throws {FileValidationError} if file validation fails
  */
 export async function uploadFile(
 	file: File,
 	path: string,
-	onProgress?: UploadProgressCallback
+	onProgress?: UploadProgressCallback,
+	compress: boolean = true
 ): Promise<string> {
 	// Validate file before upload
 	validateFile(file);
+
+	// Compress image if applicable
+	let fileToUpload: Blob = file;
+	if (compress && ALLOWED_IMAGE_TYPES.includes(file.type)) {
+		try {
+			fileToUpload = await compressImage(file, 1920, 0.8);
+		} catch (error) {
+			console.warn('Image compression failed, uploading original:', error);
+			fileToUpload = file;
+		}
+	}
 
 	// Create storage reference
 	const storageRef: StorageReference = ref(storage, path);
 
 	// Create upload task
-	const uploadTask: UploadTask = uploadBytesResumable(storageRef, file);
+	const uploadTask: UploadTask = uploadBytesResumable(storageRef, fileToUpload);
 
 	// Return promise that resolves with download URL
 	return new Promise((resolve, reject) => {
@@ -145,12 +160,24 @@ export async function deleteFile(url: string): Promise<void> {
 
 /**
  * Get the download URL for a file in Firebase Storage
+ * Uses caching to avoid redundant API calls
  * @param path - Storage path (e.g., 'reports/reportId/filename.jpg')
  * @returns Promise resolving to the download URL
  */
 export async function getDownloadURL(path: string): Promise<string> {
+	// Check cache first
+	const cached = imageCache.get(path);
+	if (cached) {
+		return cached;
+	}
+
 	const storageRef: StorageReference = ref(storage, path);
-	return await firebaseGetDownloadURL(storageRef);
+	const url = await firebaseGetDownloadURL(storageRef);
+	
+	// Cache the URL
+	imageCache.set(path, url);
+	
+	return url;
 }
 
 /**

@@ -94,7 +94,7 @@
   });
 </script>
 
-<div class="report-card {compact ? 'compact' : ''}">
+<article class="report-card {compact ? 'compact' : ''}" aria-labelledby="report-title-{liveReport.id}">
   <!-- Header -->
   <div class="report-header">
     <div class="report-meta">
@@ -111,7 +111,7 @@
   </div>
 
   <!-- Title -->
-  <h3 class="report-title">{liveReport.title}</h3>
+  <h3 id="report-title-{liveReport.id}" class="report-title">{liveReport.title}</h3>
 
   <!-- Crime Type -->
   <div class="crime-type-badge">
@@ -164,41 +164,43 @@
   {/if}
 
   <!-- Footer with Voting -->
-  <div class="report-footer">
-    <div class="vote-buttons">
+  <footer class="report-footer">
+    <div class="vote-buttons" role="group" aria-label="Vote on this report">
       <button
         class="vote-btn upvote {userVote?.voteType === 'up' ? 'active' : ''}"
         on:click={() => handleVote('up')}
         disabled={isVoting}
-        aria-label="Upvote"
+        aria-label="Upvote this report, current count: {liveReport.upvotes || 0}"
+        aria-pressed={userVote?.voteType === 'up'}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M18 15l-6-6-6 6"/>
         </svg>
-        <span>{liveReport.upvotes || 0}</span>
+        <span aria-hidden="true">{liveReport.upvotes || 0}</span>
       </button>
 
       <button
         class="vote-btn downvote {userVote?.voteType === 'down' ? 'active' : ''}"
         on:click={() => handleVote('down')}
         disabled={isVoting}
-        aria-label="Downvote"
+        aria-label="Downvote this report, current count: {liveReport.downvotes || 0}"
+        aria-pressed={userVote?.voteType === 'down'}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M6 9l6 6 6-6"/>
         </svg>
-        <span>{liveReport.downvotes || 0}</span>
+        <span aria-hidden="true">{liveReport.downvotes || 0}</span>
       </button>
     </div>
 
-    <div class="comment-count">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <div class="comment-count" aria-label="{liveReport.commentCount || 0} comments">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
       <span>{liveReport.commentCount || 0} comments</span>
     </div>
-  </div>
-</div>
+  </footer>
+</article>
 
 <style>
   .report-card {
@@ -419,8 +421,44 @@
     }
 
     .vote-btn {
-      padding: 0.375rem 0.75rem;
+      padding: 0.5rem 0.75rem;
       font-size: 0.875rem;
+      min-height: 44px;
     }
+
+    .report-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .report-footer {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .vote-buttons {
+      width: 100%;
+    }
+
+    .vote-btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+
+  /* Touch-friendly vote buttons */
+  @media (pointer: coarse) {
+    .vote-btn {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  /* Focus visible styles */
+  .vote-btn:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
   }
 </style>

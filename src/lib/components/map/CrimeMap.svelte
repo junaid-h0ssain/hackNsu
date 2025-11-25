@@ -183,22 +183,76 @@
   }
 </script>
 
-<div class="crime-map">
-  <div bind:this={mapContainer} class="map-container"></div>
+<div class="crime-map" role="application" aria-label="Interactive crime map">
+  <div 
+    bind:this={mapContainer} 
+    class="map-container"
+    aria-label="Map showing crime report locations. Use mouse or touch to navigate."
+    tabindex="0"
+  ></div>
+  <!-- Screen reader announcement for map updates -->
+  <div class="sr-only" aria-live="polite" aria-atomic="true">
+    {reports.length} crime reports displayed on map
+  </div>
 </div>
 
 <style>
   .crime-map {
     width: 100%;
     height: 100%;
+    position: relative;
   }
 
   .map-container {
     width: 100%;
     height: 100%;
-    min-height: 500px;
+    min-height: 400px;
     border-radius: 0.5rem;
     overflow: hidden;
+  }
+
+  /* Responsive map height */
+  @media (min-width: 640px) {
+    .map-container {
+      min-height: 500px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .map-container {
+      min-height: 600px;
+    }
+  }
+
+  /* Touch-friendly map controls */
+  :global(.leaflet-control-zoom a) {
+    width: 44px !important;
+    height: 44px !important;
+    line-height: 44px !important;
+    font-size: 20px !important;
+  }
+
+  :global(.leaflet-control-zoom) {
+    border: none !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  :global(.leaflet-control-zoom a:focus) {
+    outline: 2px solid #3b82f6 !important;
+    outline-offset: 2px !important;
+  }
+
+  /* Screen reader only class */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   :global(.crime-popup) {

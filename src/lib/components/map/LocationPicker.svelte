@@ -74,16 +74,29 @@
   });
 </script>
 
-<div class="location-picker">
-  <div bind:this={mapContainer} class="map-container"></div>
+<div class="location-picker" role="application" aria-label="Location picker map">
+  <p class="sr-only" id="location-picker-instructions">
+    Click or tap on the map to select a location. The selected coordinates will be displayed below the map.
+  </p>
+  <div 
+    bind:this={mapContainer} 
+    class="map-container"
+    aria-describedby="location-picker-instructions"
+    tabindex="0"
+  ></div>
   {#if selectedLocation}
-    <div class="coordinates-display">
+    <div class="coordinates-display" role="status" aria-live="polite">
       <p class="text-sm text-gray-600">
+        <span class="sr-only">Selected location coordinates:</span>
         Selected Location: 
         <span class="font-mono">
           {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}
         </span>
       </p>
+    </div>
+  {:else}
+    <div class="coordinates-display">
+      <p class="text-sm text-gray-500">Click or tap on the map to select a location</p>
     </div>
   {/if}
 </div>
@@ -98,16 +111,49 @@
 
   .map-container {
     flex: 1;
-    min-height: 400px;
+    min-height: 300px;
     width: 100%;
-    border-radius: 0.5rem;
+    border-radius: 0.5rem 0.5rem 0 0;
     overflow: hidden;
   }
 
+  /* Responsive map height */
+  @media (min-width: 640px) {
+    .map-container {
+      min-height: 400px;
+    }
+  }
+
   .coordinates-display {
-    padding: 0.75rem;
+    padding: 0.75rem 1rem;
     background-color: #f9fafb;
     border-top: 1px solid #e5e7eb;
     border-radius: 0 0 0.5rem 0.5rem;
+  }
+
+  /* Touch-friendly map controls */
+  :global(.leaflet-control-zoom a) {
+    width: 44px !important;
+    height: 44px !important;
+    line-height: 44px !important;
+    font-size: 20px !important;
+  }
+
+  :global(.leaflet-control-zoom a:focus) {
+    outline: 2px solid #3b82f6 !important;
+    outline-offset: 2px !important;
+  }
+
+  /* Screen reader only class */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 </style>

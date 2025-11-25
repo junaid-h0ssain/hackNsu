@@ -6,6 +6,7 @@ import type { Unsubscribe } from 'firebase/firestore';
 /**
  * ReportsStore manages crime reports state reactively
  * Provides real-time updates via Firestore listeners
+ * Optimized for performance with listener lifecycle management
  */
 
 interface ReportsState {
@@ -13,31 +14,114 @@ interface ReportsState {
 	loading: boolean;
 	error: string | null;
 	filters: FilterOptions;
+	isActive: boolean; // Track if listener is active
+	lastUpdated: number | null; // Track last update timestamp
 }
+
+// Track active listeners for debugging and optimization
+let activeListenerCount = 0;
 
 function createReportsStore() {
 	const { subscribe, set, update } = writable<ReportsState>({
 		reports: [],
 		loading: false,
 		error: null,
-		filters: {}
+		filters: {},
+		isActive: false,
+		lastUpdated: null
 	});
 
 	let unsubscribe: Unsubscribe | null = null;
+	let visibilityHandler: (() => void) | null = null;
+	let currentFilters: FilterOptions = {};
+
+	/**
+	 * Internal function to attach listener
+	 */
+	const attachListener = (filters: FilterOptions) => {
+		if (unsubscribe) {
+			unsubscribe();
+			activeListenerCount--;
+		}
+
+		currentFilters = filters;
+
+		try {
+			unsubscribe = subscribeToReports(filters, (reports) => {
+				update((state) => ({
+					...state,
+					reports,
+					loading: false,
+					error: null,
+					isActive: true,
+					lastUpdated: Date.now()
+				}));
+			});
+			activeListenerCount++;
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : 'Failed to subscribe to reports';
+			update((state) => ({
+				...state,
+				loading: false,
+				error: errorMessage,
+				isActive: false
+			}));
+		}
+	};
+
+	/**
+	 * Internal function to detach listener
+	 */
+	const detachListener = () => {
+		if (unsubscribe) {
+			unsubscribe();
+			unsubscribe = null;
+			activeListenerCount--;
+		}
+		update((state) => ({
+			...state,
+			isActive: false
+		}));
+	};
+
+	/**
+	 * Handle page visibility changes to pause/resume listeners
+	 */
+	const setupVisibilityHandler = () => {
+		if (typeof document === 'undefined') return;
+
+		visibilityHandler = () => {
+			if (document.visibilityState === 'hidden') {
+				// Page is hidden, detach listener to save resources
+				detachListener();
+			} else if (document.visibilityState === 'visible') {
+				// Page is visible again, reattach listener
+				attachListener(currentFilters);
+			}
+		};
+
+		document.addEventListener('visibilitychange', visibilityHandler);
+	};
+
+	/**
+	 * Clean up visibility handler
+	 */
+	const cleanupVisibilityHandler = () => {
+		if (visibilityHandler && typeof document !== 'undefined') {
+			document.removeEventListener('visibilitychange', visibilityHandler);
+			visibilityHandler = null;
+		}
+	};
 
 	return {
 		subscribe,
 
 		/**
 		 * Subscribe to real-time report updates with optional filters
+		 * Automatically manages listener lifecycle based on page visibility
 		 * @param filters - Optional filter criteria (crime type, date range, status)
 		 */
 		subscribeToReports: (filters: FilterOptions = {}) => {
-			// Unsubscribe from previous listener if exists
-			if (unsubscribe) {
-				unsubscribe();
-			}
-
 			// Set loading state
 			update((state) => ({
 				...state,
@@ -46,24 +130,11 @@ function createReportsStore() {
 				filters
 			}));
 
-			try {
-				// Set up new listener
-				unsubscribe = subscribeToReports(filters, (reports) => {
-					update((state) => ({
-						...state,
-						reports,
-						loading: false,
-						error: null
-					}));
-				});
-			} catch (error) {
-				const errorMessage = error instanceof Error ? error.message : 'Failed to subscribe to reports';
-				update((state) => ({
-					...state,
-					loading: false,
-					error: errorMessage
-				}));
-			}
+			// Set up visibility handler for automatic pause/resume
+			setupVisibilityHandler();
+
+			// Attach the listener
+			attachListener(filters);
 		},
 
 		/**
@@ -73,53 +144,43 @@ function createReportsStore() {
 		setFilters: (filters: FilterOptions) => {
 			update((state) => ({
 				...state,
-				filters
-			}));
-
-			// Resubscribe with new filters
-			if (unsubscribe) {
-				unsubscribe();
-			}
-
-			update((state) => ({
-				...state,
+				filters,
 				loading: true,
 				error: null
 			}));
 
-			try {
-				unsubscribe = subscribeToReports(filters, (reports) => {
-					update((state) => ({
-						...state,
-						reports,
-						loading: false,
-						error: null
-					}));
-				});
-			} catch (error) {
-				const errorMessage = error instanceof Error ? error.message : 'Failed to update filters';
-				update((state) => ({
-					...state,
-					loading: false,
-					error: errorMessage
-				}));
-			}
+			// Reattach with new filters
+			attachListener(filters);
 		},
 
 		/**
-		 * Unsubscribe from real-time updates
+		 * Pause real-time updates (useful when component is not visible)
+		 */
+		pause: () => {
+			detachListener();
+		},
+
+		/**
+		 * Resume real-time updates
+		 */
+		resume: () => {
+			attachListener(currentFilters);
+		},
+
+		/**
+		 * Unsubscribe from real-time updates and clean up
 		 */
 		unsubscribe: () => {
-			if (unsubscribe) {
-				unsubscribe();
-				unsubscribe = null;
-			}
+			detachListener();
+			cleanupVisibilityHandler();
 
 			update((state) => ({
 				...state,
 				reports: [],
 				loading: false,
-				error: null
+				error: null,
+				isActive: false,
+				lastUpdated: null
 			}));
 		},
 
@@ -131,7 +192,12 @@ function createReportsStore() {
 				...state,
 				error: null
 			}));
-		}
+		},
+
+		/**
+		 * Get active listener count (for debugging)
+		 */
+		getActiveListenerCount: () => activeListenerCount
 	};
 }
 
@@ -175,4 +241,20 @@ export const reportsFilters: Readable<FilterOptions> = derived(
 export const reportsCount: Readable<number> = derived(
 	reportsStore,
 	($reportsStore) => $reportsStore.reports.length
+);
+
+/**
+ * Derived store that returns whether the listener is active
+ */
+export const reportsListenerActive: Readable<boolean> = derived(
+	reportsStore,
+	($reportsStore) => $reportsStore.isActive
+);
+
+/**
+ * Derived store that returns the last update timestamp
+ */
+export const reportsLastUpdated: Readable<number | null> = derived(
+	reportsStore,
+	($reportsStore) => $reportsStore.lastUpdated
 );
