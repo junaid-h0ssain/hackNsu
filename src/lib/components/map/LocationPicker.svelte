@@ -81,8 +81,8 @@
   <div 
     bind:this={mapContainer} 
     class="map-container"
+    role="application"
     aria-describedby="location-picker-instructions"
-    tabindex="0"
   ></div>
   {#if selectedLocation}
     <div class="coordinates-display" role="status" aria-live="polite">

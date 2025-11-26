@@ -13,7 +13,7 @@ export const TARGET_PAGE_LOAD_TIME_MS = 2000;
 export const TARGET_REALTIME_UPDATE_LATENCY_MS = 1000;
 
 // Map settings
-export const DEFAULT_MAP_CENTER = { lat: 0, lng: 0 };
+export const DEFAULT_MAP_CENTER = { lat: 23.8103, lng: 90.4125 }; // Dhaka, Bangladesh
 export const DEFAULT_MAP_ZOOM = 13;
 export const MARKER_CLUSTERING_THRESHOLD = 50;
 

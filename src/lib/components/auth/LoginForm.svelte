@@ -23,6 +23,8 @@
 	let confirmationResult: ConfirmationResult | null = $state(null);
 	let recaptchaContainer: HTMLElement | null = $state(null);
 
+	
+
 	async function handleEmailLogin() {
 		if (!email || !password) {
 			error = 'Please enter both email and password';

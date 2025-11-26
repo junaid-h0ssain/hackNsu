@@ -42,7 +42,7 @@
 
 <div class="app-container">
 	<!-- Navigation Bar -->
-	<nav class="navbar" role="navigation" aria-label="Main navigation">
+	<nav class="navbar" aria-label="Main navigation">
 		<div class="nav-content">
 			<!-- Logo/Brand -->
 			<a href="/" class="nav-brand" onclick={closeMobileMenu} aria-label="CrimeWatch Home">
@@ -191,7 +191,7 @@
 	</nav>
 
 	<!-- Main Content -->
-	<main id="main-content" class="main-content" role="main" tabindex="-1">
+	<main id="main-content" class="main-content" tabindex="-1">
 		{@render children()}
 	</main>
 

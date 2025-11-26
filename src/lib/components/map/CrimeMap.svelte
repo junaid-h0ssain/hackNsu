@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
   import type { Report } from '$lib/types';
-  import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, MARKER_CLUSTERING_THRESHOLD } from '$lib/utils/constants';
-  import type { Map as LeafletMap, Marker as LeafletMarker, MarkerClusterGroup } from 'leaflet';
+  import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '$lib/utils/constants';
+  import type { Map as LeafletMap, Marker as LeafletMarker, MarkerClusterGroup, LatLngBounds } from 'leaflet';
 
   export let reports: Report[] = [];
   export let center: { lat: number; lng: number } = DEFAULT_MAP_CENTER;
@@ -15,6 +15,7 @@
   let markers: Map<string, LeafletMarker> = new Map();
   let L: typeof import('leaflet') | null = null;
   let MarkerClusterGroupClass: typeof MarkerClusterGroup | null = null;
+  let initialBoundsFit = false;
 
   onMount(async () => {
     // Dynamically import Leaflet and marker clustering to avoid SSR issues
@@ -39,7 +40,7 @@
     clusterDefaultLink.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css';
     document.head.appendChild(clusterDefaultLink);
 
-    // Initialize map
+    // Initialize map with provided center
     map = L.map(mapContainer).setView([center.lat, center.lng], DEFAULT_MAP_ZOOM);
 
     // Add OpenStreetMap tiles
@@ -76,6 +77,11 @@
     updateMarkers();
   }
 
+  // Update map center when center prop changes
+  $: if (map && center) {
+    map.setView([center.lat, center.lng], map.getZoom());
+  }
+
   function updateMarkers() {
     if (!map || !L || !markerClusterGroup) return;
 
@@ -90,9 +96,19 @@
       }
     });
 
+    // Track valid coordinates for bounds fitting
+    const validCoords: [number, number][] = [];
+
     // Add or update markers for current reports
     reports.forEach(report => {
       if (!L || !markerClusterGroup) return;
+      
+      // Skip reports without valid location
+      if (!report.location || typeof report.location.latitude !== 'number' || typeof report.location.longitude !== 'number') {
+        return;
+      }
+
+      validCoords.push([report.location.latitude, report.location.longitude]);
 
       const existingMarker = markers.get(report.id);
       
@@ -118,6 +134,13 @@
         markers.set(report.id, marker);
       }
     });
+
+    // Fit map bounds to show all markers (only on first load with data)
+    if (!initialBoundsFit && validCoords.length > 0 && map && L) {
+      const bounds = L.latLngBounds(validCoords);
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      initialBoundsFit = true;
+    }
   }
 
   function createCustomIcon(report: Report) {
@@ -187,8 +210,8 @@
   <div 
     bind:this={mapContainer} 
     class="map-container"
+    role="application"
     aria-label="Map showing crime report locations. Use mouse or touch to navigate."
-    tabindex="0"
   ></div>
   <!-- Screen reader announcement for map updates -->
   <div class="sr-only" aria-live="polite" aria-atomic="true">

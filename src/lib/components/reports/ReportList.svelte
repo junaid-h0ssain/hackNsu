@@ -442,16 +442,6 @@
     color: #6b7280;
   }
 
-  .spinner {
-    width: 48px;
-    height: 48px;
-    border: 4px solid #e5e7eb;
-    border-top-color: #3b82f6;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 1rem;
-  }
-
   @keyframes spin {
     to { transform: rotate(360deg); }
   }

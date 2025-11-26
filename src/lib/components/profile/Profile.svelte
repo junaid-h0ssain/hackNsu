@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { currentUser, authLoading } from '$lib/stores/authStore';
+  import { currentUser, authLoading, authStore } from '$lib/stores/authStore';
   import { getUserProfile, updateProfile, getUserReports, getUserActivity, type UserProfile, type UpdateProfileInput, type UserActivity } from '$lib/services/profileService';
   import type { Report } from '$lib/types';
 
@@ -24,17 +24,26 @@
   // Active tab
   let activeTab: 'reports' | 'votes' | 'comments' = 'reports';
 
+  // Get user ID from either currentUser (Firestore) or authStore (Firebase Auth)
+  function getUserId(): string | null {
+    if ($currentUser?.uid) return $currentUser.uid;
+    // Fallback to Firebase Auth user if Firestore user data not loaded
+    const authState = $authStore;
+    return authState.firebaseUser?.uid || null;
+  }
+
   // Load profile data
   async function loadProfile() {
-    if (!$currentUser) return;
+    const userId = getUserId();
+    if (!userId) return;
 
     isLoading = true;
     errorMessage = '';
 
     try {
-      profile = await getUserProfile($currentUser.uid);
-      userReports = await getUserReports($currentUser.uid);
-      userActivity = await getUserActivity($currentUser.uid);
+      profile = await getUserProfile(userId);
+      userReports = await getUserReports(userId);
+      userActivity = await getUserActivity(userId);
       
       // Initialize edit form
       editForm = {
@@ -135,29 +144,30 @@
   }
 
   onMount(() => {
-    if ($currentUser) {
+    const userId = getUserId();
+    if (userId) {
       loadProfile();
     }
   });
 
   // Reload when user changes
-  $: if ($currentUser && !$authLoading) {
+  $: if (!$authLoading && getUserId()) {
     loadProfile();
   }
 </script>
 
 
-{#if $authLoading}
+{#if $authLoading || isLoading}
   <div class="loading-state">
     <div class="spinner"></div>
     <p>Loading...</p>
   </div>
-{:else if !$currentUser}
+{:else if !$currentUser && !profile}
   <div class="not-authenticated">
-    <h3>Not Authenticated</h3>
-    <p>Please log in to view your profile.</p>
+    <h3>Profile Not Found</h3>
+    <p>Your profile data could not be loaded. Please try logging out and back in.</p>
   </div>
-{:else if isLoading}
+{:else if errorMessage && !profile}
   <div class="loading-state">
     <div class="spinner"></div>
     <p>Loading profile...</p>

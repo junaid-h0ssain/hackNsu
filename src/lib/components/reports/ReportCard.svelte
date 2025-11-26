@@ -129,6 +129,65 @@
     </p>
   {/if}
 
+  <!-- Location Info with Mini Map -->
+  {#if liveReport.location}
+    <div class="location-info">
+      <div class="location-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+        <span class="location-label">Location</span>
+      </div>
+      
+      <!-- Static Map Preview using OpenStreetMap -->
+      {#if !compact}
+        <div class="mini-map-container">
+          <a 
+            href="https://www.google.com/maps?q={liveReport.location.latitude},{liveReport.location.longitude}" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            class="mini-map-link"
+            title="Click to view on Google Maps"
+          >
+            <img 
+              src="https://staticmap.openstreetmap.de/staticmap.php?center={liveReport.location.latitude},{liveReport.location.longitude}&zoom=15&size=400x120&markers={liveReport.location.latitude},{liveReport.location.longitude},red-pushpin"
+              alt="Location map showing crime report at {liveReport.location.address || `${liveReport.location.latitude.toFixed(4)}, ${liveReport.location.longitude.toFixed(4)}`}"
+              class="mini-map-image"
+              loading="lazy"
+            />
+            <div class="mini-map-overlay">
+              <span>📍 View on Map</span>
+            </div>
+          </a>
+        </div>
+      {/if}
+      
+      {#if liveReport.location.address}
+        <p class="location-address">{liveReport.location.address}</p>
+      {:else}
+        <p class="location-coords">
+          {liveReport.location.latitude.toFixed(4)}, {liveReport.location.longitude.toFixed(4)}
+        </p>
+      {/if}
+      {#if !compact}
+        <a 
+          href="https://www.google.com/maps?q={liveReport.location.latitude},{liveReport.location.longitude}" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          class="view-map-link"
+        >
+          View on Google Maps
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+        </a>
+      {/if}
+    </div>
+  {/if}
+
   <!-- AI Analysis -->
   {#if liveReport.aiAnalysis && !compact}
     <div class="ai-analysis">
@@ -275,6 +334,97 @@
     color: #4b5563;
     line-height: 1.6;
     margin-bottom: 1rem;
+  }
+
+  .location-info {
+    background-color: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .location-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #0369a1;
+    margin-bottom: 0.5rem;
+  }
+
+  .location-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+
+  .mini-map-container {
+    margin-bottom: 0.75rem;
+    border-radius: 0.375rem;
+    overflow: hidden;
+    border: 1px solid #bae6fd;
+  }
+
+  .mini-map-link {
+    display: block;
+    text-decoration: none;
+    position: relative;
+  }
+
+  .mini-map-image {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    display: block;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+  }
+
+  .mini-map-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.6));
+    color: white;
+    padding: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .mini-map-link:hover .mini-map-overlay {
+    opacity: 1;
+  }
+
+  .location-address {
+    font-size: 0.875rem;
+    color: #374151;
+    margin: 0;
+  }
+
+  .location-coords {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    font-family: monospace;
+    margin: 0;
+  }
+
+  .view-map-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 0.5rem;
+    font-size: 0.8125rem;
+    color: #0284c7;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .view-map-link:hover {
+    color: #0369a1;
+    text-decoration: underline;
   }
 
   .ai-analysis {

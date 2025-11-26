@@ -1,6 +1,7 @@
 import {
 	doc,
 	getDoc,
+	setDoc,
 	updateDoc,
 	collection,
 	query,
@@ -38,6 +39,7 @@ export interface UserActivity {
 /**
  * Get a user's profile by user ID
  * Returns user data from Firestore
+ * Creates a new profile if user is authenticated but document doesn't exist
  */
 export async function getUserProfile(userId: string): Promise<UserProfile> {
 	try {
@@ -45,6 +47,26 @@ export async function getUserProfile(userId: string): Promise<UserProfile> {
 		const userDoc = await getDoc(userDocRef);
 
 		if (!userDoc.exists()) {
+			// Check if this is the current authenticated user - if so, create their profile
+			const currentUser = auth.currentUser;
+			if (currentUser && currentUser.uid === userId) {
+				const newUserData: User = {
+					uid: userId,
+					role: 'citizen',
+					createdAt: serverTimestamp() as any,
+					updatedAt: serverTimestamp() as any,
+					suspended: false
+				};
+
+				// Add optional fields if available
+				if (currentUser.phoneNumber) newUserData.phoneNumber = currentUser.phoneNumber;
+				if (currentUser.email) newUserData.email = currentUser.email;
+				if (currentUser.displayName) newUserData.displayName = currentUser.displayName;
+
+				await setDoc(userDocRef, newUserData);
+				return newUserData as UserProfile;
+			}
+
 			throw new Error(`User with ID ${userId} not found`);
 		}
 

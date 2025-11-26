@@ -2,22 +2,20 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { subscribeToReports } from '$lib/services/reportService';
 	import LazyMap from '$lib/components/map/LazyMap.svelte';
-	import type { Report, FilterOptions } from '$lib/types';
+	import type { Report } from '$lib/types';
 	import type { Unsubscribe } from 'firebase/firestore';
 
-	// State
 	let reports: Report[] = $state([]);
 	let filteredReports: Report[] = $state([]);
 	let isLoading = $state(true);
 	let unsubscribe: Unsubscribe | null = null;
-
-	// Filter state
+	let selectedReport: Report | null = $state(null);
 	let selectedCrimeType = $state('');
 	let startDate = $state('');
 	let endDate = $state('');
 	let showFilters = $state(false);
+	let mapCenter = $state({ lat: 23.8103, lng: 90.4125 });
 
-	// Crime type options
 	const crimeTypes = [
 		{ value: '', label: 'All Types' },
 		{ value: 'theft', label: 'Theft' },
@@ -32,31 +30,16 @@
 
 	function applyFilters() {
 		let filtered = [...reports];
-
-		// Filter by crime type
-		if (selectedCrimeType) {
-			filtered = filtered.filter(r => r.crimeType === selectedCrimeType);
-		}
-
-		// Filter by start date
+		if (selectedCrimeType) filtered = filtered.filter(r => r.crimeType === selectedCrimeType);
 		if (startDate) {
 			const start = new Date(startDate);
-			filtered = filtered.filter(r => {
-				const reportDate = r.createdAt?.toDate?.() || new Date();
-				return reportDate >= start;
-			});
+			filtered = filtered.filter(r => (r.createdAt?.toDate?.() || new Date()) >= start);
 		}
-
-		// Filter by end date
 		if (endDate) {
 			const end = new Date(endDate);
 			end.setHours(23, 59, 59, 999);
-			filtered = filtered.filter(r => {
-				const reportDate = r.createdAt?.toDate?.() || new Date();
-				return reportDate <= end;
-			});
+			filtered = filtered.filter(r => (r.createdAt?.toDate?.() || new Date()) <= end);
 		}
-
 		filteredReports = filtered;
 	}
 
@@ -68,182 +51,224 @@
 	}
 
 	function handleMarkerClick(event: CustomEvent<string>) {
-		const reportId = event.detail;
-		// Could navigate to report detail or show a modal
-		console.log('Marker clicked:', reportId);
+		selectedReport = filteredReports.find(r => r.id === event.detail) || null;
 	}
 
-	// Apply filters when filter values change
-	$effect(() => {
+	function closeDetailPanel() { 
+		selectedReport = null; 
+	}
+
+	function formatTimestamp(timestamp: any): string {
+		if (!timestamp) return 'Just now';
+		const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+		return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+	}
+
+	function getSeverityColor(severity: string): string {
+		if (severity === 'high') return 'severity-high';
+		if (severity === 'medium') return 'severity-medium';
+		if (severity === 'low') return 'severity-low';
+		return 'severity-unknown';
+	}
+
+	function calculateMapCenter(reportsList: Report[]) {
+		if (reportsList.length === 0) return;
+		const validReports = reportsList.filter(r => 
+			r.location && typeof r.location.latitude === 'number' && typeof r.location.longitude === 'number'
+		);
+		if (validReports.length === 0) return;
+		const sumLat = validReports.reduce((sum, r) => sum + r.location.latitude, 0);
+		const sumLng = validReports.reduce((sum, r) => sum + r.location.longitude, 0);
+		mapCenter = { lat: sumLat / validReports.length, lng: sumLng / validReports.length };
+	}
+
+	$effect(() => { 
 		if (reports.length > 0) {
 			applyFilters();
+			calculateMapCenter(reports);
 		}
 	});
 
 	onMount(() => {
-		const filters: FilterOptions = { status: 'active' };
-		
-		unsubscribe = subscribeToReports(filters, (updatedReports) => {
+		unsubscribe = subscribeToReports({ status: 'active' }, (updatedReports) => {
 			reports = updatedReports;
 			applyFilters();
 			isLoading = false;
 		});
 	});
 
-	onDestroy(() => {
-		if (unsubscribe) {
-			unsubscribe();
-		}
-	});
+	onDestroy(() => { if (unsubscribe) unsubscribe(); });
 </script>
 
-<svelte:head>
-	<title>Crime Map - CrimeWatch</title>
-	<meta name="description" content="View crime reports on an interactive map. Explore incidents in your area." />
-</svelte:head>
+<svelte:head><title>Crime Map - CrimeWatch</title></svelte:head>
 
 <div class="map-page">
-	<!-- Header -->
 	<div class="page-header">
 		<div class="header-content">
 			<h1>Crime Map</h1>
-			<p>Explore crime reports in your area</p>
+			<p>Explore crime reports in your area. Click on markers to see details.</p>
 		</div>
 		<button class="btn-filter" onclick={() => showFilters = !showFilters}>
-			<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-			</svg>
 			{showFilters ? 'Hide Filters' : 'Show Filters'}
 		</button>
 	</div>
 
-	<!-- Filter Panel -->
 	{#if showFilters}
-		<div class="filter-panel">
-			<div class="filter-row">
-				<div class="filter-group">
-					<label for="crimeType">Crime Type</label>
-					<select id="crimeType" bind:value={selectedCrimeType}>
-						{#each crimeTypes as type}
-							<option value={type.value}>{type.label}</option>
-						{/each}
-					</select>
-				</div>
-
-				<div class="filter-group">
-					<label for="startDate">From Date</label>
-					<input type="date" id="startDate" bind:value={startDate} />
-				</div>
-
-				<div class="filter-group">
-					<label for="endDate">To Date</label>
-					<input type="date" id="endDate" bind:value={endDate} />
-				</div>
+	<div class="filter-panel">
+		<div class="filter-row">
+			<div class="filter-group">
+				<label for="crimeType">Crime Type</label>
+				<select id="crimeType" bind:value={selectedCrimeType} onchange={applyFilters}>
+					{#each crimeTypes as type}<option value={type.value}>{type.label}</option>{/each}
+				</select>
 			</div>
-
-			<div class="filter-actions">
-				<button class="btn-secondary" onclick={clearFilters}>
-					Clear Filters
-				</button>
-				<span class="filter-count">
-					Showing {filteredReports.length} of {reports.length} reports
-				</span>
+			<div class="filter-group">
+				<label for="startDate">From</label>
+				<input type="date" id="startDate" bind:value={startDate} onchange={applyFilters} />
+			</div>
+			<div class="filter-group">
+				<label for="endDate">To</label>
+				<input type="date" id="endDate" bind:value={endDate} onchange={applyFilters} />
 			</div>
 		</div>
+		<div class="filter-actions">
+			<button class="btn-secondary" onclick={clearFilters}>Clear</button>
+			<span class="report-count">{filteredReports.length} of {reports.length} reports</span>
+		</div>
+	</div>
 	{/if}
 
-	<!-- Map Container -->
-	<div class="map-container">
-		{#if isLoading}
-			<div class="loading-overlay">
-				<div class="spinner"></div>
-				<p>Loading map data...</p>
-			</div>
-		{/if}
-		<LazyMap reports={filteredReports} on:markerClick={handleMarkerClick} />
+	<div class="map-legend">
+		<span class="legend-title">Severity:</span>
+		<span class="legend-item"><span class="dot high"></span>High</span>
+		<span class="legend-item"><span class="dot medium"></span>Medium</span>
+		<span class="legend-item"><span class="dot low"></span>Low</span>
 	</div>
 
-	<!-- Legend -->
-	<div class="map-legend">
-		<h3>Severity Legend</h3>
-		<div class="legend-items">
-			<div class="legend-item">
-				<span class="legend-marker high"></span>
-				<span>High</span>
-			</div>
-			<div class="legend-item">
-				<span class="legend-marker medium"></span>
-				<span>Medium</span>
-			</div>
-			<div class="legend-item">
-				<span class="legend-marker low"></span>
-				<span>Low</span>
-			</div>
-			<div class="legend-item">
-				<span class="legend-marker unknown"></span>
-				<span>Unknown</span>
-			</div>
+	<div class="map-detail-container">
+		<div class="map-container" class:with-panel={selectedReport}>
+			{#if isLoading}
+				<div class="loading-overlay"><div class="spinner"></div><p>Loading crime reports...</p></div>
+			{/if}
+			<LazyMap reports={filteredReports} center={mapCenter} on:markerClick={handleMarkerClick} />
 		</div>
+
+		{#if selectedReport}
+		<aside class="detail-panel">
+			<div class="panel-header">
+				<h2>Crime Details</h2>
+				<button class="close-btn" onclick={closeDetailPanel} aria-label="Close panel">✕</button>
+			</div>
+			<div class="panel-content">
+				{#if selectedReport.aiAnalysis}
+				<div class="severity-badge {getSeverityColor(selectedReport.aiAnalysis.severity)}">
+					{selectedReport.aiAnalysis.severity.toUpperCase()} SEVERITY
+				</div>
+				{/if}
+				<h3 class="report-title">{selectedReport.title}</h3>
+				<div class="crime-type-badge">{selectedReport.crimeType}</div>
+				<div class="meta-info">
+					<span>By {selectedReport.authorName}</span>
+					<span>•</span>
+					<span>{formatTimestamp(selectedReport.createdAt)}</span>
+				</div>
+				<div class="section">
+					<h4>Description</h4>
+					<p>{selectedReport.description}</p>
+				</div>
+				<div class="section">
+					<h4>Location</h4>
+					{#if selectedReport.location?.address}
+						<p class="location-address">{selectedReport.location.address}</p>
+					{:else if selectedReport.location}
+						<p class="coords">{selectedReport.location.latitude.toFixed(5)}, {selectedReport.location.longitude.toFixed(5)}</p>
+					{/if}
+					{#if selectedReport.location}
+						<a href="https://www.google.com/maps?q={selectedReport.location.latitude},{selectedReport.location.longitude}" target="_blank" rel="noopener" class="maps-link">Open in Google Maps →</a>
+					{/if}
+				</div>
+				{#if selectedReport.aiAnalysis}
+				<div class="section">
+					<h4>AI Analysis</h4>
+					<p class="ai-summary">{selectedReport.aiAnalysis.summary}</p>
+					{#if selectedReport.aiAnalysis.categories?.length > 0}
+					<div class="categories">
+						{#each selectedReport.aiAnalysis.categories as cat}<span class="tag">{cat}</span>{/each}
+					</div>
+					{/if}
+				</div>
+				{/if}
+				<div class="stats-row">
+					<span class="upvotes">↑ {selectedReport.upvotes || 0}</span>
+					<span class="downvotes">↓ {selectedReport.downvotes || 0}</span>
+					<span class="comments">💬 {selectedReport.commentCount || 0}</span>
+				</div>
+				{#if selectedReport.mediaUrls?.length > 0}
+				<div class="section">
+					<h4>Evidence ({selectedReport.mediaUrls.length})</h4>
+					<div class="media-grid">
+						{#each selectedReport.mediaUrls as url, i}
+							<a href={url} target="_blank" rel="noopener" class="media-item"><img src={url} alt="Evidence {i+1}" /></a>
+						{/each}
+					</div>
+				</div>
+				{/if}
+			</div>
+		</aside>
+		{/if}
 	</div>
 </div>
 
+
 <style>
 	.map-page {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-		height: calc(100vh - 180px);
-		min-height: 600px;
+		padding: 1rem;
+		max-width: 1600px;
+		margin: 0 auto;
 	}
 
-	/* Header */
 	.page-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+		margin-bottom: 1rem;
 		flex-wrap: wrap;
 		gap: 1rem;
 	}
 
 	.header-content h1 {
-		font-size: 1.5rem;
+		font-size: 1.75rem;
 		font-weight: 700;
 		color: #111827;
 		margin: 0;
 	}
 
 	.header-content p {
-		font-size: 0.875rem;
 		color: #6b7280;
 		margin: 0.25rem 0 0 0;
+		font-size: 0.9rem;
 	}
 
 	.btn-filter {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.625rem 1rem;
-		background-color: white;
-		color: #374151;
+		padding: 0.5rem 1rem;
+		background: #f3f4f6;
 		border: 1px solid #d1d5db;
 		border-radius: 0.5rem;
-		font-size: 0.875rem;
-		font-weight: 500;
 		cursor: pointer;
+		font-weight: 500;
 		transition: all 0.2s;
 	}
 
 	.btn-filter:hover {
-		background-color: #f9fafb;
-		border-color: #9ca3af;
+		background: #e5e7eb;
 	}
 
-	/* Filter Panel */
 	.filter-panel {
-		background-color: white;
+		background: white;
 		border: 1px solid #e5e7eb;
 		border-radius: 0.75rem;
-		padding: 1.25rem;
+		padding: 1rem;
+		margin-bottom: 1rem;
 	}
 
 	.filter-row {
@@ -256,76 +281,109 @@
 	.filter-group {
 		display: flex;
 		flex-direction: column;
-		gap: 0.375rem;
+		gap: 0.25rem;
 	}
 
 	.filter-group label {
-		font-size: 0.8125rem;
+		font-size: 0.8rem;
 		font-weight: 500;
 		color: #374151;
 	}
 
 	.filter-group select,
 	.filter-group input {
-		padding: 0.5rem 0.75rem;
+		padding: 0.5rem;
 		border: 1px solid #d1d5db;
 		border-radius: 0.375rem;
-		font-size: 0.875rem;
-		transition: border-color 0.2s;
-	}
-
-	.filter-group select:focus,
-	.filter-group input:focus {
-		outline: none;
-		border-color: #3b82f6;
-		box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+		font-size: 0.9rem;
 	}
 
 	.filter-actions {
 		display: flex;
-		justify-content: space-between;
 		align-items: center;
+		gap: 1rem;
 	}
 
 	.btn-secondary {
 		padding: 0.5rem 1rem;
-		background-color: white;
-		color: #6b7280;
+		background: white;
 		border: 1px solid #d1d5db;
 		border-radius: 0.375rem;
-		font-size: 0.875rem;
-		font-weight: 500;
 		cursor: pointer;
-		transition: all 0.2s;
+		font-weight: 500;
 	}
 
 	.btn-secondary:hover {
-		background-color: #f9fafb;
+		background: #f9fafb;
 	}
 
-	.filter-count {
-		font-size: 0.8125rem;
+	.report-count {
+		color: #6b7280;
+		font-size: 0.875rem;
+	}
+
+	.map-legend {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding: 0.75rem 1rem;
+		background: white;
+		border: 1px solid #e5e7eb;
+		border-radius: 0.5rem;
+		margin-bottom: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.legend-title {
+		font-weight: 600;
+		color: #374151;
+		font-size: 0.875rem;
+	}
+
+	.legend-item {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		font-size: 0.8rem;
 		color: #6b7280;
 	}
 
-	/* Map Container */
+	.dot {
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		border: 2px solid white;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+	}
+
+	.dot.high { background: #ef4444; }
+	.dot.medium { background: #f59e0b; }
+	.dot.low { background: #10b981; }
+
+	.map-detail-container {
+		display: flex;
+		gap: 1rem;
+		height: calc(100vh - 280px);
+		min-height: 500px;
+	}
+
 	.map-container {
-		position: relative;
 		flex: 1;
-		min-height: 400px;
-		background-color: white;
-		border: 1px solid #e5e7eb;
+		position: relative;
 		border-radius: 0.75rem;
 		overflow: hidden;
+		border: 1px solid #e5e7eb;
+		transition: all 0.3s;
+	}
+
+	.map-container.with-panel {
+		flex: 2;
 	}
 
 	.loading-overlay {
 		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background-color: rgba(255, 255, 255, 0.9);
+		inset: 0;
+		background: rgba(255,255,255,0.9);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -340,112 +398,217 @@
 		border-top-color: #3b82f6;
 		border-radius: 50%;
 		animation: spin 1s linear infinite;
-		margin-bottom: 1rem;
 	}
 
 	@keyframes spin {
 		to { transform: rotate(360deg); }
 	}
 
-	.loading-overlay p {
-		color: #6b7280;
-		font-size: 0.875rem;
-	}
-
-	/* Legend */
-	.map-legend {
-		background-color: white;
+	.detail-panel {
+		width: 380px;
+		background: white;
 		border: 1px solid #e5e7eb;
 		border-radius: 0.75rem;
-		padding: 1rem 1.25rem;
-	}
-
-	.map-legend h3 {
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: #374151;
-		margin: 0 0 0.75rem 0;
-	}
-
-	.legend-items {
+		overflow: hidden;
 		display: flex;
-		flex-wrap: wrap;
-		gap: 1.5rem;
+		flex-direction: column;
 	}
 
-	.legend-item {
+	.panel-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1rem;
+		border-bottom: 1px solid #e5e7eb;
+		background: #f9fafb;
+	}
+
+	.panel-header h2 {
+		font-size: 1.125rem;
+		font-weight: 600;
+		margin: 0;
+	}
+
+	.close-btn {
+		width: 32px;
+		height: 32px;
+		border: none;
+		background: #e5e7eb;
+		border-radius: 50%;
+		cursor: pointer;
+		font-size: 1rem;
 		display: flex;
 		align-items: center;
+		justify-content: center;
+	}
+
+	.close-btn:hover {
+		background: #d1d5db;
+	}
+
+	.panel-content {
+		padding: 1rem;
+		overflow-y: auto;
+		flex: 1;
+	}
+
+	.severity-badge {
+		display: inline-block;
+		padding: 0.25rem 0.75rem;
+		border-radius: 9999px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		margin-bottom: 0.75rem;
+	}
+
+	.severity-high { background: #fee2e2; color: #991b1b; }
+	.severity-medium { background: #fef3c7; color: #92400e; }
+	.severity-low { background: #d1fae5; color: #065f46; }
+	.severity-unknown { background: #f3f4f6; color: #6b7280; }
+
+	.report-title {
+		font-size: 1.25rem;
+		font-weight: 700;
+		color: #111827;
+		margin: 0 0 0.5rem 0;
+	}
+
+	.crime-type-badge {
+		display: inline-block;
+		padding: 0.25rem 0.75rem;
+		background: #dbeafe;
+		color: #1e40af;
+		border-radius: 0.375rem;
+		font-size: 0.8rem;
+		font-weight: 500;
+		text-transform: capitalize;
+		margin-bottom: 0.75rem;
+	}
+
+	.meta-info {
+		display: flex;
 		gap: 0.5rem;
-		font-size: 0.8125rem;
+		font-size: 0.8rem;
+		color: #6b7280;
+		margin-bottom: 1rem;
+	}
+
+	.section {
+		margin-bottom: 1rem;
+		padding-bottom: 1rem;
+		border-bottom: 1px solid #f3f4f6;
+	}
+
+	.section:last-child {
+		border-bottom: none;
+		margin-bottom: 0;
+	}
+
+	.section h4 {
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: #374151;
+		margin: 0 0 0.5rem 0;
+		text-transform: uppercase;
+		letter-spacing: 0.025em;
+	}
+
+	.section p {
+		margin: 0;
+		color: #4b5563;
+		font-size: 0.9rem;
+		line-height: 1.5;
+	}
+
+	.location-address {
+		color: #374151;
+	}
+
+	.coords {
+		font-family: monospace;
+		font-size: 0.8rem;
 		color: #6b7280;
 	}
 
-	.legend-marker {
-		width: 16px;
-		height: 16px;
-		border-radius: 50%;
-		border: 2px solid white;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+	.maps-link {
+		display: inline-block;
+		margin-top: 0.5rem;
+		color: #2563eb;
+		font-size: 0.8rem;
+		text-decoration: none;
 	}
 
-	.legend-marker.high {
-		background-color: #ef4444;
+	.maps-link:hover {
+		text-decoration: underline;
 	}
 
-	.legend-marker.medium {
-		background-color: #f59e0b;
+	.ai-summary {
+		background: #f9fafb;
+		padding: 0.75rem;
+		border-radius: 0.375rem;
+		font-style: italic;
 	}
 
-	.legend-marker.low {
-		background-color: #10b981;
+	.categories {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+		margin-top: 0.5rem;
 	}
 
-	.legend-marker.unknown {
-		background-color: #6b7280;
+	.tag {
+		padding: 0.25rem 0.5rem;
+		background: #e0e7ff;
+		color: #4338ca;
+		border-radius: 0.25rem;
+		font-size: 0.75rem;
+		font-weight: 500;
 	}
 
-	/* Responsive */
+	.stats-row {
+		display: flex;
+		gap: 1rem;
+		padding: 0.75rem;
+		background: #f9fafb;
+		border-radius: 0.5rem;
+		margin-bottom: 1rem;
+	}
+
+	.upvotes { color: #10b981; font-weight: 600; }
+	.downvotes { color: #ef4444; font-weight: 600; }
+	.comments { color: #6b7280; }
+
+	.media-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 0.5rem;
+	}
+
+	.media-item {
+		aspect-ratio: 1;
+		border-radius: 0.375rem;
+		overflow: hidden;
+	}
+
+	.media-item img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
 	@media (max-width: 768px) {
-		.map-page {
+		.map-detail-container {
+			flex-direction: column;
 			height: auto;
-			min-height: auto;
-		}
-
-		.page-header {
-			flex-direction: column;
-			align-items: flex-start;
-		}
-
-		.btn-filter {
-			width: 100%;
-			justify-content: center;
-		}
-
-		.filter-row {
-			grid-template-columns: 1fr;
-		}
-
-		.filter-actions {
-			flex-direction: column;
-			gap: 0.75rem;
-			align-items: stretch;
-		}
-
-		.btn-secondary {
-			width: 100%;
-		}
-
-		.filter-count {
-			text-align: center;
 		}
 
 		.map-container {
-			min-height: 500px;
+			height: 400px;
 		}
 
-		.legend-items {
-			gap: 1rem;
+		.detail-panel {
+			width: 100%;
+			max-height: 50vh;
 		}
 	}
 </style>

@@ -276,7 +276,7 @@
         aria-required="true"
         aria-invalid={errors.description ? 'true' : 'false'}
         aria-describedby="description-hint {errors.description ? 'description-error' : ''}"
-      />
+      ></textarea>
       {#if errors.description}
         <p id="description-error" class="text-red-500 text-sm mt-1" role="alert">{errors.description}</p>
       {/if}
@@ -287,9 +287,10 @@
 
     <!-- Location -->
     <div class="form-group">
-      <label class="block text-sm font-medium text-gray-700 mb-2">
-        Location <span class="text-red-500">*</span>
-      </label>
+      <span id="location-label" class="block text-sm font-medium text-gray-700 mb-2">
+        Location <span class="text-red-500" aria-hidden="true">*</span>
+        <span class="sr-only">(required)</span>
+      </span>
       
       {#if !showLocationPicker}
         <button
@@ -357,7 +358,9 @@
               {#if mediaFiles[index].type.startsWith('image/')}
                 <img src={previewUrl} alt="Preview {index + 1}" class="w-full h-32 object-cover rounded-lg" />
               {:else}
-                <video src={previewUrl} class="w-full h-32 object-cover rounded-lg" controls />
+                <video src={previewUrl} class="w-full h-32 object-cover rounded-lg" controls>
+                  <track kind="captions" src="" label="No captions available" />
+                </video>
               {/if}
               <button
                 type="button"

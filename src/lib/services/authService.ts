@@ -13,6 +13,8 @@ import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '$lib/firebase/config';
 import type { User } from '$lib/types';
 
+auth.settings.appVerificationDisabledForTesting = true;
+
 /**
  * AuthService provides authentication functionality using Firebase Auth
  * Supports email/password and phone/OTP authentication methods
@@ -30,16 +32,20 @@ export async function signUpWithEmail(
 	const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 	const firebaseUser = userCredential.user;
 
-	// Create user document in Firestore
+	// Create user document in Firestore (only include defined fields)
 	const userData: User = {
 		uid: firebaseUser.uid,
-		email: firebaseUser.email || undefined,
-		displayName: displayName || firebaseUser.displayName || undefined,
 		role: 'citizen',
 		createdAt: serverTimestamp() as any,
 		updatedAt: serverTimestamp() as any,
 		suspended: false
 	};
+
+	// Only add optional fields if they have values
+	if (firebaseUser.email) userData.email = firebaseUser.email;
+	if (displayName || firebaseUser.displayName) {
+		userData.displayName = displayName || firebaseUser.displayName || '';
+	}
 
 	await setDoc(doc(db, 'users', firebaseUser.uid), userData);
 
@@ -99,16 +105,18 @@ export async function confirmPhoneCode(
 	const userDoc = await getDoc(userDocRef);
 
 	if (!userDoc.exists()) {
-		// Create new user document
+		// Create new user document (only include defined fields)
 		const userData: User = {
 			uid: firebaseUser.uid,
-			phoneNumber: firebaseUser.phoneNumber || undefined,
-			displayName: firebaseUser.displayName || undefined,
 			role: 'citizen',
 			createdAt: serverTimestamp() as any,
 			updatedAt: serverTimestamp() as any,
 			suspended: false
 		};
+
+		// Only add optional fields if they have values
+		if (firebaseUser.phoneNumber) userData.phoneNumber = firebaseUser.phoneNumber;
+		if (firebaseUser.displayName) userData.displayName = firebaseUser.displayName;
 
 		await setDoc(userDocRef, userData);
 		return userData;
