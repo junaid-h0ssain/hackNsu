@@ -1,12 +1,18 @@
 # Build stage
-FROM ovhcom/bun:1.2-alpine AS builder  # Use an official Bun image
+FROM oven/bun:1.2-alpine AS builder
 WORKDIR /app
-COPY package*.json bun.lockb ./       # Include the bun lockfile for faster installs
+
+# Copy lockfiles
+COPY package*.json bun.lockb ./
+
+# Install dependencies
 RUN bun install --frozen-lockfile
+
+# Copy source and build
 COPY . .
 RUN bun run build
 
-# Production stage (stays the same)
+# Production stage
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80
