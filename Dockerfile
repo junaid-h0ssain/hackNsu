@@ -3,11 +3,10 @@ FROM oven/bun:1.2-alpine AS builder
 WORKDIR /app
 
 # Copy lockfiles
-COPY package*.json bun.lock ./
+COPY package*.json ./
 
 # Install dependencies
-RUN bun install --frozen-lockfile
-
+RUN bun install 
 # Copy source and build
 COPY . .
 RUN bun run build
